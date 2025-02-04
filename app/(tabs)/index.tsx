@@ -1,74 +1,184 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Appbar } from "react-native-paper";
+import {
+  Paragraph,
+  Progress,
+  SizableText,
+  SizeTokens,
+  XStack,
+  YStack,
+} from "tamagui";
+import { Notification } from "iconsax-react-native";
+import CountdownTimer from "@/components/CountDownTimer";
+import Carousel from "@/components/Carousel";
+import FeaturedCandidatesCard from "@/components/FeaturedCandidatesCard";
+import AnnouncementCard from "@/components/AnnouncementCard";
+import TabHeader from "@/components/TabHeader";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function index() {
+  const [loading, setLoading] = useState(false);
+  const [size, setSize] = React.useState(4);
+  const sizeProp = `$${size}` as SizeTokens;
 
-export default function HomeScreen() {
+  const sampleData = [
+    { id: 1, name: "Wiston Churchill", title: "SUG President" },
+    { id: 2, name: "Bill Clinton", title: "SUG Vice-President" },
+    { id: 3, name: "Barack Obama", title: "SUG Secretary General" },
+    { id: 4, name: "George Bush", title: "SUG Asst. Sec Gen" },
+  ];
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* Ensures parent view takes full screen */}
+      {loading && (
+        <View
+          style={{
+            position: "absolute",
+            zIndex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            width: "100%",
+            height: "100%",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+      {/* App Header */}
+      <TabHeader />
+      {/* Countdown Timer */}
+      <View
+        style={{
+          alignItems: "center",
+          marginVertical: 10,
+          marginHorizontal: 10,
+        }}
+      >
+        <CountdownTimer targetDate="2025-03-31T23:59:59" />
+      </View>
+      {/* Scrollable Content */}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <YStack gap="$4" marginHorizontal={15}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              paddingHorizontal: 1,
+            }}
+          >
+            <SizableText
+              style={{
+                flex: 1,
+                flexShrink: 0,
+                fontFamily: "InterMedium",
+                fontWeight: "600",
+                fontSize: 14,
+              }}
+            >
+              Live election stats
+            </SizableText>
+            <Paragraph
+              style={{ flexShrink: 0, fontFamily: "InterLight", fontSize: 14 }}
+            >
+              30%
+            </Paragraph>
+          </View>
+          <Progress
+            key={0}
+            size={sizeProp}
+            value={30}
+            backgroundColor={"#E0E0E0"}
+          >
+            <Progress.Indicator animation="bouncy" />
+          </Progress>
+          <Paragraph
+            style={{
+              fontFamily: "InterXlight",
+              fontSize: 13,
+              //   fontWeight: "600",
+            }}
+            // fontFamily={"InterXlight"}
+            // fontSize={13}
+          >
+            Voting progress
+          </Paragraph>
+        </YStack>
+        <View>
+          <View
+            style={{ marginHorizontal: 10, marginBottom: 20, marginTop: 30 }}
+          >
+            <SizableText
+              //   fontSize={20}
+              //   fontWeight={"600"}
+              //   fontFamily={"InterRegular"}
+              style={{
+                fontFamily: "InterRegular",
+                fontSize: 20,
+                fontWeight: "600",
+              }}
+            >
+              Candidates of the hour
+            </SizableText>
+          </View>
+          <Carousel
+            data={sampleData}
+            cardsPerView={2} // Number of visible cards
+            autoSlide={true} // Enable auto-slide
+            interval={2000} // Slide every 2 seconds
+            renderItem={(item) => (
+              <FeaturedCandidatesCard name={item.name} position={item.title} />
+            )}
+          />
+        </View>
+
+        <View>
+          <View
+            style={{ marginHorizontal: 10, marginBottom: 10, marginTop: 30 }}
+          >
+            <SizableText
+              //   fontSize={20}
+              //   fontWeight={"600"}
+              //   fontFamily={"InterRegular"}
+              style={{
+                fontFamily: "InterRegular",
+                fontSize: 20,
+                fontWeight: "600",
+              }}
+            >
+              Latest Announcements
+            </SizableText>
+          </View>
+          <AnnouncementCard />
+          <AnnouncementCard />
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  card: {
+    backgroundColor: "#E0E0E0",
+    borderRadius: 10,
+    padding: 20,
+    marginHorizontal: 5,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  text: {
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
