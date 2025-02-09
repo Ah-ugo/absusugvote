@@ -1,74 +1,134 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { ActivityIndicator, Appbar } from "react-native-paper";
+import {
+  Stack,
+  Card,
+  Avatar,
+  XStack,
+  YStack,
+  SizableText,
+  Button,
+} from "tamagui";
+import { useNavigation, useRouter } from "expo-router";
+import { ArrowCircleLeft } from "iconsax-react-native";
+import { getCurrentUser } from "@/appUtils/ApiUtils";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function UserProfile() {
+  const [user, setUser] = useState({});
+  const navigation = useRouter();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const navigationer = useNavigation();
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-export default function HomeScreen() {
+  const handleLogout = () => {
+    setMenuVisible(false);
+    navigation.replace("/(auth)/login"); // Navigate to the login screen
+  };
+
+  const handleBackPress = () => navigationer.goBack();
+
+  const GetUserDetails = async () => {
+    setLoading(true);
+    const userDetails = await getCurrentUser();
+    setUser(userDetails);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    GetUserDetails();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await GetUserDetails();
+    setRefreshing(false);
+  }, []);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+
+      {/* Header */}
+      <Appbar.Header>
+        <XStack
+          paddingHorizontal={10}
+          justifyContent="space-between"
+          width={"100%"}
+        >
+          <TouchableOpacity onPress={handleBackPress}>
+            <ArrowCircleLeft color="black" variant="Outline" />
+          </TouchableOpacity>
+          <SizableText style={styles.headerText}>My Profile</SizableText>
+          <View></View>
+        </XStack>
+      </Appbar.Header>
+
+      {/* Scrollable Content with Pull-to-Refresh */}
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Profile Card */}
+        <Card
+          padding="$4"
+          marginTop="$4"
+          borderRadius="$4"
+          alignItems="center"
+          backgroundColor={"#fff"}
+        >
+          <Avatar circular size="$12">
+            <Avatar.Image src={user?.profile_image} />
+          </Avatar>
+          <YStack marginTop="$3" alignItems="center">
+            <SizableText fontSize="$6" fontWeight="bold">
+              {user.first_name} {user.last_name}
+            </SizableText>
+            <SizableText color="$gray10">
+              Matric No: {user.matric_no}
+            </SizableText>
+            <SizableText color="$blue10">{user.department}</SizableText>
+          </YStack>
+        </Card>
+
+        {/* Logout Button */}
+        <XStack justifyContent="center" marginTop="$4">
+          <Button onPress={handleLogout} size="$4" variant="outlined">
+            Logout
+          </Button>
+        </XStack>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  loadingOverlay: {
+    position: "absolute",
+    zIndex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  headerText: {
+    fontFamily: "InterRegular",
+    fontSize: 20,
+    fontWeight: "600",
   },
 });

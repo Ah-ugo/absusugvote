@@ -1,94 +1,128 @@
-import { View, Text, ScrollView, StyleSheet } from "react-native";
-import React, { useState } from "react";
-import { ActivityIndicator, Appbar } from "react-native-paper";
 import {
-  Paragraph,
-  Progress,
-  SizableText,
-  SizeTokens,
-  XStack,
-  YStack,
-} from "tamagui";
-import { Notification } from "iconsax-react-native";
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+} from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { ActivityIndicator } from "react-native-paper";
+import { Paragraph, Progress, SizableText, SizeTokens, YStack } from "tamagui";
 import CountdownTimer from "@/components/CountDownTimer";
 import Carousel from "@/components/Carousel";
 import FeaturedCandidatesCard from "@/components/FeaturedCandidatesCard";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import TabHeader from "@/components/TabHeader";
+import {
+  getCandidatesOfTheHour,
+  getCurrentUser,
+  getAnnouncements,
+  getElectionIdFromStorage,
+} from "@/appUtils/ApiUtils";
 
-export default function index() {
+type Candidate = {
+  id: string;
+  image: string;
+  name: string;
+  position: string;
+};
+
+type Announcement = {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+};
+
+export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
-  const [size, setSize] = React.useState(4);
+  const [refreshing, setRefreshing] = useState(false);
+  const [size, setSize] = useState(4);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [electionId, setElectionId] = useState<string | null>(null);
   const sizeProp = `$${size}` as SizeTokens;
 
-  const sampleData = [
-    { id: 1, name: "Wiston Churchill", title: "SUG President" },
-    { id: 2, name: "Bill Clinton", title: "SUG Vice-President" },
-    { id: 3, name: "Barack Obama", title: "SUG Secretary General" },
-    { id: 4, name: "George Bush", title: "SUG Asst. Sec Gen" },
-  ];
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [candidatesData, announcementsData] = await Promise.all([
+        getCandidatesOfTheHour(),
+        getAnnouncements(),
+      ]);
+
+      if (candidatesData) {
+        setCandidates(
+          Object.values(candidatesData).map((candidate: any) => ({
+            id: candidate._id,
+            image: candidate.image_url,
+            name: candidate.name,
+            position: candidate.position,
+          }))
+        );
+      }
+
+      if (announcementsData) {
+        setAnnouncements(announcementsData);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+    getCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchElectionId = async () => {
+      const id = await getElectionIdFromStorage();
+      setElectionId(id);
+    };
+    fetchElectionId();
+  }, []);
+
+  // Function to handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* Ensures parent view takes full screen */}
+      {/* Loader */}
       {loading && (
-        <View
-          style={{
-            position: "absolute",
-            zIndex: 1,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            width: "100%",
-            height: "100%",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
+        <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#fff" />
         </View>
       )}
+
       {/* App Header */}
       <TabHeader />
+
       {/* Countdown Timer */}
-      <View
-        style={{
-          alignItems: "center",
-          marginVertical: 10,
-          marginHorizontal: 10,
-        }}
-      >
-        <CountdownTimer targetDate="2025-03-31T23:59:59" />
+      <View style={styles.countdownContainer}>
+        <CountdownTimer electionId={electionId} />
       </View>
+
       {/* Scrollable Content */}
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
+        {/* Live Election Stats */}
         <YStack gap="$4" marginHorizontal={15}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "100%",
-              paddingHorizontal: 1,
-            }}
-          >
-            <SizableText
-              style={{
-                flex: 1,
-                flexShrink: 0,
-                fontFamily: "InterMedium",
-                fontWeight: "600",
-                fontSize: 14,
-              }}
-            >
+          <View style={styles.statContainer}>
+            <SizableText style={styles.statTitle}>
               Live election stats
             </SizableText>
-            <Paragraph
-              style={{ flexShrink: 0, fontFamily: "InterLight", fontSize: 14 }}
-            >
-              30%
-            </Paragraph>
+            <Paragraph style={styles.statValue}>30%</Paragraph>
           </View>
           <Progress
             key={0}
@@ -98,65 +132,53 @@ export default function index() {
           >
             <Progress.Indicator animation="bouncy" />
           </Progress>
-          <Paragraph
-            style={{
-              fontFamily: "InterXlight",
-              fontSize: 13,
-              //   fontWeight: "600",
-            }}
-            // fontFamily={"InterXlight"}
-            // fontSize={13}
-          >
-            Voting progress
-          </Paragraph>
+          <Paragraph style={styles.statLabel}>Voting progress</Paragraph>
         </YStack>
+
+        {/* Candidates of the Hour */}
         <View>
-          <View
-            style={{ marginHorizontal: 10, marginBottom: 20, marginTop: 30 }}
-          >
-            <SizableText
-              //   fontSize={20}
-              //   fontWeight={"600"}
-              //   fontFamily={"InterRegular"}
-              style={{
-                fontFamily: "InterRegular",
-                fontSize: 20,
-                fontWeight: "600",
-              }}
-            >
+          <View style={styles.sectionHeader}>
+            <SizableText style={styles.sectionTitle}>
               Candidates of the hour
             </SizableText>
           </View>
           <Carousel
-            data={sampleData}
-            cardsPerView={2} // Number of visible cards
-            autoSlide={true} // Enable auto-slide
-            interval={2000} // Slide every 2 seconds
+            data={candidates}
+            cardsPerView={2}
+            autoSlide={true}
+            interval={2000}
             renderItem={(item) => (
-              <FeaturedCandidatesCard name={item.name} position={item.title} />
+              <FeaturedCandidatesCard
+                id={item.id}
+                img={item.image}
+                name={item.name}
+                position={item.position}
+              />
             )}
           />
         </View>
 
+        {/* Latest Announcements */}
         <View>
-          <View
-            style={{ marginHorizontal: 10, marginBottom: 10, marginTop: 30 }}
-          >
-            <SizableText
-              //   fontSize={20}
-              //   fontWeight={"600"}
-              //   fontFamily={"InterRegular"}
-              style={{
-                fontFamily: "InterRegular",
-                fontSize: 20,
-                fontWeight: "600",
-              }}
-            >
+          <View style={styles.sectionHeader}>
+            <SizableText style={styles.sectionTitle}>
               Latest Announcements
             </SizableText>
           </View>
-          <AnnouncementCard />
-          <AnnouncementCard />
+
+          {announcements.length > 0 ? (
+            announcements.map((announcement) => (
+              <AnnouncementCard
+                key={announcement.id}
+                title={announcement.title}
+                message={announcement.message}
+              />
+            ))
+          ) : (
+            <Paragraph style={styles.noAnnouncements}>
+              No announcements available.
+            </Paragraph>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -164,21 +186,55 @@ export default function index() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loaderContainer: {
+    position: "absolute",
+    zIndex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  countdownContainer: {
+    alignItems: "center",
+    marginVertical: 10,
+    marginHorizontal: 10,
+  },
+  statContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingHorizontal: 1,
+  },
+  statTitle: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    flexShrink: 0,
+    fontFamily: "InterMedium",
+    fontWeight: "600",
+    fontSize: 14,
   },
-  card: {
-    backgroundColor: "#E0E0E0",
-    borderRadius: 10,
-    padding: 20,
-    marginHorizontal: 5,
-    justifyContent: "center",
-    alignItems: "center",
+  statValue: {
+    flexShrink: 0,
+    fontFamily: "InterLight",
+    fontSize: 14,
   },
-  text: {
-    fontSize: 18,
-    fontWeight: "bold",
+  statLabel: {
+    fontFamily: "InterXlight",
+    fontSize: 13,
+  },
+  sectionHeader: {
+    marginHorizontal: 10,
+    marginBottom: 10,
+    marginTop: 30,
+  },
+  sectionTitle: {
+    fontFamily: "InterRegular",
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  noAnnouncements: {
+    textAlign: "center",
+    marginTop: 10,
   },
 });

@@ -2,13 +2,16 @@ import { View, Text } from "react-native";
 import React from "react";
 import { Avatar, Button, Card, SizableText, XStack, YStack } from "tamagui";
 
-export default function CandidateCard({ name, position }: any) {
+export default function CandidateCard({
+  name,
+  position,
+  img,
+  func,
+  voted,
+}: any) {
   return (
     <Card
       animation="bouncy"
-      // size="$4"
-      // width={250}
-      // height={300}
       elevate
       scale={0.9}
       hoverStyle={{ scale: 0.925 }}
@@ -19,10 +22,7 @@ export default function CandidateCard({ name, position }: any) {
     >
       <XStack justifyContent="space-between" alignItems="center">
         <Avatar circular size="$5">
-          <Avatar.Image
-            accessibilityLabel="Cam"
-            src="https://images.unsplash.com/photo-1548142813-c348350df52b?&w=150&h=150&dpr=2&q=80"
-          />
+          <Avatar.Image accessibilityLabel="Candidate Image" src={img} />
           <Avatar.Fallback backgroundColor="$blue10" />
         </Avatar>
 
@@ -31,11 +31,20 @@ export default function CandidateCard({ name, position }: any) {
             {name}
           </SizableText>
           <SizableText style={{ fontSize: 12, fontFamily: "InterLight" }}>
-            SUG {position} Aspirant
+            {position} Aspirant
           </SizableText>
         </YStack>
-        <Button style={{ fontFamily: "InterRegular", fontSize: 12 }}>
-          Vote Now
+
+        <Button
+          onPress={func}
+          disabled={voted} // Disable button if already voted
+          style={{
+            fontFamily: "InterRegular",
+            fontSize: 12,
+            // backgroundColor: voted ? "#ccc" : "#ccc", // Gray out if voted
+          }}
+        >
+          {voted ? "Voted ✅" : "Vote Now"}
         </Button>
       </XStack>
     </Card>

@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 export default function ElectionCard({ img, position, time }: any) {
   const router = useRouter();
   const NavigFunc = () => {
-    router.push("/position/[id]");
+    router.push(`/position/${position}`);
   };
   return (
     <Card
@@ -20,9 +20,10 @@ export default function ElectionCard({ img, position, time }: any) {
       elevation={0}
     >
       <Card.Cover
-        resizeMode="cover"
+        resizeMode="contain"
+        style={{ backgroundColor: "#0F52BA" }}
         source={{
-          uri: "https://images.pexels.com/photos/3866555/pexels-photo-3866555.png",
+          uri: "https://res.cloudinary.com/dejeplzpv/image/upload/v1739063162/IMG-20250208-WA0004_dj0jps.jpg",
         }}
       />
       <View

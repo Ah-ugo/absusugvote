@@ -22,7 +22,37 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    await router.replace("/(tabs)");
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        "https://absu-votes-api.onrender.com/token",
+        new URLSearchParams({
+          grant_type: "password",
+          username,
+          password,
+          scope: "",
+          client_id: "",
+          client_secret: "",
+        }),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const { access_token, token_type, role } = response.data;
+
+      await AsyncStorage.setItem("access_token", access_token);
+      await AsyncStorage.setItem("user_role", role);
+
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      console.error("Login failed:", error.response?.data || error.message);
+      alert("Login failed. Please check your credentials.");
+    }
+    setLoading(false);
   };
 
   return (
@@ -50,15 +80,19 @@ export default function SignIn() {
       <View>
         <YStack>
           <Label htmlFor="username" style={{ fontFamily: "InterLight" }}>
-            Username
+            Matric Number
           </Label>
           <Input
             size={"$4"}
             id="username"
-            placeholder="Enter your username"
+            placeholder="Enter your matric number"
             value={username}
-            onChangeText={setUsername}
-            style={{ fontFamily: "InterReg" }}
+            onChangeText={(input) => setUsername(input.trimStart())}
+            style={{ fontFamily: "InterRegular" }}
+            onBlur={() => setUsername(username.trim())}
+            autoCapitalize="none"
+            autoCorrect={false}
+            // style={{ fontFamily: "InterRegular" }}
           />
         </YStack>
 
@@ -72,8 +106,11 @@ export default function SignIn() {
             placeholder="Enter your password"
             value={password}
             secureTextEntry
-            onChangeText={setPassword}
-            style={{ fontFamily: "InterReg" }}
+            onChangeText={(input) => setPassword(input.trimStart())}
+            style={{ fontFamily: "InterRegular" }}
+            onBlur={() => setPassword(password.trim())}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </YStack>
 
@@ -114,11 +151,15 @@ export default function SignIn() {
             justifyContent="center"
             alignItems="center"
           >
-            <SizableText style={{ fontSize: 18, fontFamily: "InterReg" }}>
+            <SizableText style={{ fontSize: 18, fontFamily: "InterRegular" }}>
               Don’t have an account?
             </SizableText>
             <Link
-              style={{ fontSize: 18, color: "#0F52BA", fontFamily: "InterReg" }}
+              style={{
+                fontSize: 18,
+                color: "#0F52BA",
+                fontFamily: "InterRegular",
+              }}
               href={"/register"}
             >
               Sign up

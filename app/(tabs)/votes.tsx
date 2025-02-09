@@ -1,16 +1,55 @@
-import { View, Text, ScrollView } from "react-native";
-import React, { useState } from "react";
+import { View, ScrollView, RefreshControl } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
 import TabHeader from "@/components/TabHeader";
 import { ActivityIndicator } from "react-native-paper";
-import { Input, Stack, XStack, YStack } from "tamagui";
+import { Input, Paragraph, Stack, XStack, YStack } from "tamagui";
 import { SearchNormal1 } from "iconsax-react-native";
 import ElectionCard from "@/components/ElectionCard";
+import { getElectionPositions } from "@/appUtils/ApiUtils";
 
-export default function votes() {
+export default function Votes() {
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [positions, setPositions] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredPositions, setFilteredPositions] = useState([]);
+
+  const fetchPositions = async () => {
+    setLoading(true);
+    try {
+      const res = await getElectionPositions();
+      setPositions(res);
+      setFilteredPositions(res);
+    } catch (error) {
+      console.error("Error fetching positions:", error);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchPositions();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPositions();
+    setRefreshing(false);
+  }, []);
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === "") {
+      setFilteredPositions(positions);
+    } else {
+      const filtered = positions.filter((position) =>
+        position.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredPositions(filtered);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* Ensures parent view takes full screen */}
       {loading && (
         <View
           style={{
@@ -26,7 +65,6 @@ export default function votes() {
           <ActivityIndicator size="large" color="#fff" />
         </View>
       )}
-      {/* App Header */}
       <TabHeader />
 
       {/* Search Input */}
@@ -44,12 +82,13 @@ export default function votes() {
           right={0}
           position="absolute"
           flex={1}
-          placeholder="Search..."
+          placeholder="Search Position..."
           paddingLeft={50}
           height={40}
           borderColor={"#AEACAC"}
-          // value={searchQuery}
-          // onChangeText={(query) => setSearchQuery(query)}
+          value={searchQuery}
+          onChangeText={handleSearch}
+          // style={{ width: "100%" }}
         />
         <Stack
           position="absolute"
@@ -64,14 +103,24 @@ export default function votes() {
         </Stack>
       </XStack>
 
+      {/* Positions List with Pull to Refresh */}
       <ScrollView
         style={{ paddingHorizontal: 15, paddingTop: 15 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <YStack gap={10}>
-          <ElectionCard position={"President"} time={3} />
-          <ElectionCard position={"Vice-President"} time={3} />
-          <ElectionCard position={"Secretary General"} time={3} />
+          {filteredPositions.length > 0 ? (
+            filteredPositions.map((resp, index) => (
+              <ElectionCard key={index} position={resp} time={3} />
+            ))
+          ) : (
+            <Paragraph style={{ textAlign: "center", marginTop: 10 }}>
+              No positions available.
+            </Paragraph>
+          )}
         </YStack>
       </ScrollView>
     </View>

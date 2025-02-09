@@ -1,17 +1,79 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native";
-import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  RefreshControl,
+} from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
 import { ActivityIndicator, Appbar } from "react-native-paper";
-import { Input, SizableText, Stack, XStack, YStack } from "tamagui";
+import { Input, Paragraph, SizableText, Stack, XStack, YStack } from "tamagui";
 import { TouchableOpacity } from "react-native";
 import { ArrowCircleLeft, SearchNormal1 } from "iconsax-react-native";
-import { useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation } from "expo-router";
 import CandidateCard from "@/components/CandidateCard";
+import {
+  fetchCandidatesForPosition,
+  voteForCandidate,
+} from "@/appUtils/ApiUtils";
 
 export default function Position() {
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [votedCandidates, setVotedCandidates] = useState(new Set());
   const navigation = useNavigation();
+  const { id } = useLocalSearchParams();
+  const [candidates, setCandidates] = useState([]);
+
+  const fetchCandidates = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchCandidatesForPosition(id);
+      setCandidates(data);
+      const voted = new Set(data.filter((c) => c.voted).map((c) => c._id));
+      setVotedCandidates(voted);
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch candidates.");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCandidates();
+  }, [id]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchCandidates().finally(() => setRefreshing(false));
+  }, []);
 
   const handleBackPress = () => navigation.goBack();
+
+  const handleVote = async (candidate_id, candidate_position) => {
+    if (votedCandidates.has(candidate_id)) {
+      Alert.alert("Vote Error", "You have already voted for this candidate.");
+      return;
+    }
+    setLoading(true);
+    const response = await voteForCandidate(candidate_id, candidate_position);
+    if (response?.id) {
+      Alert.alert("Success", "Your vote has been cast successfully.");
+      setVotedCandidates((prev) => new Set(prev).add(candidate_id));
+    } else {
+      Alert.alert(
+        "Error",
+        response?.detail || "Something went wrong. Please try again."
+      );
+    }
+    setLoading(false);
+  };
+
+  const filteredCandidates = candidates.filter((candidate) =>
+    candidate.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       {loading && (
@@ -29,9 +91,7 @@ export default function Position() {
           <TouchableOpacity onPress={handleBackPress}>
             <ArrowCircleLeft color="black" variant="Outline" />
           </TouchableOpacity>
-          <SizableText style={styles.headerText}>
-            Vote for Vice-President
-          </SizableText>
+          <SizableText style={styles.headerText}>Vote for {id}</SizableText>
           <View></View>
         </XStack>
       </Appbar.Header>
@@ -45,18 +105,13 @@ export default function Position() {
           alignItems="center"
         >
           <Input
-            top={0}
-            left={0}
-            bottom={0}
-            right={0}
-            position="absolute"
             flex={1}
-            placeholder="Search..."
+            placeholder="Search by name..."
             paddingLeft={50}
             height={40}
             borderColor={"#AEACAC"}
-            // value={searchQuery}
-            // onChangeText={(query) => setSearchQuery(query)}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
           <Stack
             position="absolute"
@@ -71,11 +126,29 @@ export default function Position() {
           </Stack>
         </XStack>
       </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <YStack gap={10} style={{ paddingHorizontal: 20, marginTop: 20 }}>
-          <CandidateCard name={"George Bush"} position={"President"} />
-          <CandidateCard name={"Donald Trump"} position={"President"} />
-          <CandidateCard name={"Barack Obama"} position={"President"} />
+          {filteredCandidates.length > 0 ? (
+            filteredCandidates.map((resp) => (
+              <CandidateCard
+                key={resp._id}
+                name={resp.name}
+                position={resp.position}
+                img={resp.image_url}
+                func={() => handleVote(resp._id, resp.position)}
+                voted={votedCandidates.has(resp._id)}
+              />
+            ))
+          ) : (
+            <Paragraph style={{ textAlign: "center", marginTop: 10 }}>
+              No candidates available.
+            </Paragraph>
+          )}
         </YStack>
       </ScrollView>
     </View>
@@ -89,11 +162,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     width: "100%",
     height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  header: {
-    display: "flex",
     justifyContent: "center",
     alignItems: "center",
   },

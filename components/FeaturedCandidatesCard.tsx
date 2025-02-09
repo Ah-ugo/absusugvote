@@ -4,10 +4,15 @@ import { Image, SizableText } from "tamagui";
 import { Card } from "react-native-paper";
 import { useRouter } from "expo-router";
 
-export default function FeaturedCandidatesCard({ name, position }: any) {
+export default function FeaturedCandidatesCard({
+  name,
+  position,
+  id,
+  img,
+}: any) {
   const router = useRouter();
   const NavigFunc = () => {
-    router.push("/profile/[id]");
+    router.push(`/profile/${id}`);
   };
   return (
     <Card
@@ -26,7 +31,7 @@ export default function FeaturedCandidatesCard({ name, position }: any) {
       /> */}
       <Card.Cover
         source={{
-          uri: "https://images.pexels.com/photos/3866555/pexels-photo-3866555.png",
+          uri: img,
         }}
       />
       {/* <Card.Title title="Card Title" subtitle="Card Subtitle" /> */}

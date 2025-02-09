@@ -1,3 +1,4 @@
+import { getLatestElection } from "@/appUtils/ApiUtils";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { StyleSheet, View, Image } from "react-native";
@@ -15,7 +16,7 @@ export default function Splash() {
         console.error("Navigation error:", error);
       }
     };
-
+    getLatestElection();
     navigateToHome();
   }, []);
 

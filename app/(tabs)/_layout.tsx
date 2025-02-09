@@ -10,7 +10,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { Category2, Cup, Home2, User } from "iconsax-react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  // const colorScheme = useColorScheme();
 
   return (
     <Tabs
@@ -18,7 +18,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: "#0F52BA",
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
+        // tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect

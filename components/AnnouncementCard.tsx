@@ -3,7 +3,7 @@ import React from "react";
 import { Card, SizableText, XStack, YStack } from "tamagui";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function AnnouncementCard() {
+export default function AnnouncementCard({ title, message }: any) {
   return (
     <Card backgroundColor={"transparent"}>
       <XStack
@@ -28,7 +28,7 @@ export default function AnnouncementCard() {
               fontSize: 16,
             }}
           >
-            Debate Night
+            {title}
           </SizableText>
           <SizableText
             // fontSize={14}
@@ -40,7 +40,7 @@ export default function AnnouncementCard() {
               fontSize: 14,
             }}
           >
-            7am-8pm
+            {message}
           </SizableText>
         </YStack>
       </XStack>

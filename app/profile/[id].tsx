@@ -2,36 +2,96 @@ import {
   View,
   Text,
   ScrollView,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
+  Alert,
+  RefreshControl,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Avatar, Button, SizableText, XStack, YStack } from "tamagui";
 import { ActivityIndicator, Appbar } from "react-native-paper";
 import { ArrowCircleLeft } from "iconsax-react-native";
-import { useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation } from "expo-router";
+import { getCandidateDetails, voteForCandidate } from "@/appUtils/ApiUtils";
 
 export default function Profile() {
   const [loading, setLoading] = useState(false);
+  const [candidate, setCandidate] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
+  const { id } = useLocalSearchParams(); // Get candidate ID from URL
+
+  const fetchCandidateDetails = async () => {
+    setLoading(true);
+    try {
+      const data = await getCandidateDetails(id); // Fetch details by ID
+      setCandidate(data); // Set the fetched data to state
+    } catch (error) {
+      console.error("Error fetching candidate details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchCandidateDetails(); // Fetch the candidate details when the component mounts
+    }
+  }, [id]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchCandidateDetails().finally(() => setRefreshing(false));
+  }, []);
 
   const handleBackPress = () => navigation.goBack();
 
-  const achievements = [
-    { id: "1", title: "Organized the Annual Student Tech Conference" },
-    { id: "2", title: "Led a campaign for mental health awareness" },
-    { id: "3", title: "Secured funding for new library books" },
-    { id: "4", title: "Established a mentorship program for freshmen" },
-  ];
+  const handleVote = async () => {
+    if (!candidate) return; // Ensure candidate details are available
+
+    setLoading(true);
+
+    const response = await voteForCandidate(candidate._id, candidate.position);
+
+    console.log("Handle Vote Response:", response); // Debugging: Log response
+
+    if (response?.id) {
+      // If an ID is returned, assume success
+      Alert.alert("Success", "Your vote has been cast successfully.");
+    } else if (
+      response?.detail === "Voter has already voted for this position."
+    ) {
+      Alert.alert("Vote Error", "You have already voted for this position.");
+    } else if (response?.detail === "Election has ended.") {
+      Alert.alert(
+        "Election Ended",
+        "You can no longer vote as the election has ended."
+      );
+    } else if (response?.detail === "Election has not started.") {
+      Alert.alert(
+        "Election Not Started",
+        "Voting has not started yet. Please wait."
+      );
+    } else {
+      Alert.alert(
+        "Error",
+        response?.detail || "Something went wrong. Please try again."
+      );
+    }
+
+    setLoading(false);
+  };
+
+  if (loading || !candidate) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
-        </View>
-      )}
       {/* Header */}
       <Appbar.Header>
         <XStack
@@ -47,64 +107,61 @@ export default function Profile() {
         </XStack>
       </Appbar.Header>
 
-      <View style={{ paddingHorizontal: 10 }}>
+      <View style={{ paddingHorizontal: 10, paddingBottom: 20 }}>
         <Avatar circular size="$10">
           <Avatar.Image
-            accessibilityLabel="Cam"
-            src="https://images.unsplash.com/photo-1548142813-c348350df52b?&w=150&h=150&dpr=2&q=80"
+            accessibilityLabel="Candidate Image"
+            src={candidate.image_url}
           />
           <Avatar.Fallback backgroundColor="$blue10" />
         </Avatar>
 
         <YStack marginTop={10} gap={4}>
-          <SizableText style={styles.nameText}>Mia Jang</SizableText>
+          <SizableText style={styles.nameText}>{candidate.name}</SizableText>
           <SizableText style={styles.descriptionText}>
-            Candidate for the role of VP of the student union. I am passionate
-            about making our school a better place and have been involved in
-            many impactful projects.
+            {candidate.short_description}
           </SizableText>
         </YStack>
-        <Button style={styles.voteButton}>Vote for me</Button>
+        <Button style={styles.voteButton} onPress={handleVote}>
+          Vote for me
+        </Button>
       </View>
 
-      <ScrollView style={{ paddingTop: 20 }}>
+      <ScrollView
+        style={{ paddingTop: 10, marginBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={{ paddingHorizontal: 10 }}>
           <SizableText style={styles.sectionTitle}>Achievements</SizableText>
         </View>
-        {/* <FlatList
-          data={achievements}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={{ marginHorizontal: 10, paddingBottom: 20 }}>
-              <Text style={styles.achievementText}>{item.title}</Text>
-            </View>
-          )}
-        /> */}
         <YStack>
-          {achievements.map((item) => {
-            return (
-              <View style={{ marginHorizontal: 10, paddingBottom: 20 }}>
-                <Text style={styles.achievementText}>{item.title}</Text>
-              </View>
-            );
-          })}
+          {candidate?.accomplishments.map((item, index) => (
+            <View
+              key={index}
+              style={{ marginHorizontal: 10, paddingBottom: 10 }}
+            >
+              <Text style={styles.achievementText}>{`• ${item}`}</Text>
+            </View>
+          ))}
         </YStack>
 
         <View style={{ paddingHorizontal: 10, marginTop: 20 }}>
           <SizableText style={styles.sectionTitle}>Manifesto</SizableText>
-          <SizableText style={styles.manifestoText}>
-            "My vision is to create an inclusive and empowering school
-            environment where every student feels heard and valued. I will work
-            to improve student engagement, advocate for better resources, and
-            ensure transparency in the student union."
+          <SizableText style={[styles.manifestoText, { paddingBottom: 20 }]}>
+            {candidate.manifesto}
           </SizableText>
         </View>
       </ScrollView>
 
       {/* Full-width Vote Button */}
-      <View style={{ marginHorizontal: 10, paddingTop: 20 }}>
-        <TouchableOpacity style={styles.fullWidthButton}>
-          <Text style={styles.floatingButtonText}>Vote for Mia</Text>
+      <View style={{ marginHorizontal: 10, marginTop: 20, marginBottom: 20 }}>
+        <TouchableOpacity style={styles.fullWidthButton} onPress={handleVote}>
+          <Text style={styles.floatingButtonText}>
+            Vote for {candidate.name}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -118,11 +175,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     width: "100%",
     height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  header: {
-    display: "flex",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -159,7 +211,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: "#E0E0E0",
     marginTop: 20,
-    // marginHorizontal: 10,
   },
   fullWidthButton: {
     position: "absolute",
@@ -169,13 +220,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: "center",
     borderRadius: 10,
-
-    // marginHorizontal: 10,
   },
   floatingButtonText: {
     color: "#fff",
     fontSize: 16,
-    // fontWeight: "bold",
-    fontFamily: "InterRegular",
   },
 });
