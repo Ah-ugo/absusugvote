@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import {
@@ -13,6 +13,7 @@ import {
 } from "tamagui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Eye, EyeSlash } from "iconsax-react-native";
 
 export default function SignUpScreen() {
   const [username, setUsername] = useState("");
@@ -24,6 +25,11 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
 
   // Handle Image Selection
   const pickImage = async () => {
@@ -118,7 +124,10 @@ export default function SignUpScreen() {
           Fill your details below to register
         </SizableText>
       </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollViewContent}
+      >
         <YStack gap={10}>
           <YStack>
             <Label htmlFor="firstname" style={{ fontFamily: "InterLight" }}>
@@ -194,18 +203,41 @@ export default function SignUpScreen() {
             <Label htmlFor="password" style={{ fontFamily: "InterLight" }}>
               Password
             </Label>
-            <Input
-              size={"$4"}
-              id="password"
-              placeholder="Enter password"
-              value={password}
-              secureTextEntry
-              onChangeText={(input) => setPassword(input.trimStart())}
-              style={{ fontFamily: "InterRegular" }}
-              onBlur={() => setPassword(password.trim())}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <XStack alignItems="center">
+              <Input
+                size={"$4"}
+                id="password"
+                placeholder="Enter password"
+                value={password}
+                secureTextEntry={!isPasswordVisible}
+                onChangeText={(input) => setPassword(input.trimStart())}
+                style={{ fontFamily: "InterRegular", flex: 1 }}
+                onBlur={() => setPassword(password.trim())}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <Button // Button outside the Input
+                onPress={togglePasswordVisibility}
+                size="$3"
+                backgroundColor="transparent"
+                style={{
+                  position: "absolute",
+                  // position: 'absolute',
+                  right: 8,
+                  top: 3, // Align to top of parent
+                  bottom: 0, // Align to bottom of parent
+                  justifyContent: "center", // Vertically center content
+                  alignItems: "center", // Horizontally center content (if needed)
+                }} // Position it
+              >
+                {isPasswordVisible ? (
+                  <EyeSlash size={20} color="gray" />
+                ) : (
+                  <Eye size={20} color="gray" />
+                )}
+              </Button>
+            </XStack>
           </YStack>
 
           {/* Profile Picture Upload */}
@@ -235,21 +267,44 @@ export default function SignUpScreen() {
               {message}
             </SizableText>
           )}
-
-          {/* Signup Button */}
-          <Button
-            color={"white"}
-            fontWeight={"800"}
-            backgroundColor={"#0F52BA"}
-            marginTop={20}
-            style={{ color: "white" }}
-            onPress={handleSignUp}
-            disabled={loading}
-          >
-            {loading ? "Signing Up..." : "Sign Up"}
-          </Button>
         </YStack>
       </ScrollView>
+      {/* Signup Button */}
+      <View style={styles.fixedButtonContainer}>
+        <Button
+          color={"white"}
+          fontWeight={"800"}
+          backgroundColor={"#0F52BA"}
+          style={{ color: "white" }}
+          onPress={handleSignUp}
+          disabled={loading}
+          width="100%"
+        >
+          {loading ? "Signing Up..." : "Sign Up"}
+        </Button>
+      </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1, // Container takes full screen
+  },
+  scrollViewContent: {
+    flexGrow: 1, // ScrollView content can grow to fill space
+    // paddingHorizontal: 16, // Add horizontal padding back here
+    // paddingBottom: 80, // Add padding to avoid button overlap
+  },
+  fixedButtonContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // top: 100,
+    // backgroundColor: "white",
+    padding: 16,
+    // borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#ccc",
+  },
+});

@@ -14,12 +14,18 @@ import { Link, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
+import { Eye, EyeSlash } from "iconsax-react-native";
 
 export default function SignIn() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -100,18 +106,41 @@ export default function SignIn() {
           <Label htmlFor="password" style={{ fontFamily: "InterLight" }}>
             Password
           </Label>
-          <Input
-            size={"$4"}
-            id="password"
-            placeholder="Enter your password"
-            value={password}
-            secureTextEntry
-            onChangeText={(input) => setPassword(input.trimStart())}
-            style={{ fontFamily: "InterRegular" }}
-            onBlur={() => setPassword(password.trim())}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <XStack alignItems="center">
+            <Input
+              size={"$4"}
+              id="password"
+              placeholder="Enter your password"
+              value={password}
+              secureTextEntry={!isPasswordVisible}
+              onChangeText={(input) => setPassword(input.trimStart())}
+              style={{ fontFamily: "InterRegular", flex: 1 }}
+              onBlur={() => setPassword(password.trim())}
+              autoCapitalize="none"
+              autoCorrect={false}
+              // Remove the right prop from here
+            />
+            <Button // Button outside the Input
+              onPress={togglePasswordVisibility}
+              size="$3"
+              backgroundColor="transparent"
+              style={{
+                position: "absolute",
+                // position: 'absolute',
+                right: 8,
+                top: 3, // Align to top of parent
+                bottom: 0, // Align to bottom of parent
+                justifyContent: "center", // Vertically center content
+                alignItems: "center", // Horizontally center content (if needed)
+              }} // Position it
+            >
+              {isPasswordVisible ? (
+                <EyeSlash size={20} color="gray" />
+              ) : (
+                <Eye size={20} color="gray" />
+              )}
+            </Button>
+          </XStack>
         </YStack>
 
         <Button
